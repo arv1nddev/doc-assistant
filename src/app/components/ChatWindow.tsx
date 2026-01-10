@@ -93,7 +93,7 @@ export default function ChatWindow({ chatId, onStartNewChat,onUpdateChat }: any)
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center opacity-40">
             <h1 className="text-4xl font-semibold text-gray-700 mb-2">
-              Doc assistant
+              Knowledge Vault
             </h1>
             <p className="text-gray-500">
               What would you like to work on?
