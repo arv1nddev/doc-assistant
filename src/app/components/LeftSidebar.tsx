@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+
 import {
   MessageSquare,
   Plus,
@@ -21,9 +23,10 @@ export default function LeftSidebar({
   onTogglePin
 }: any) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
   const pinnedChats = chats.filter((c: any) => c.pinned);
   const recentChats = chats.filter((c: any) => !c.pinned);
+  const { logout } = useAuth();
+
 
   return (
     <div className="w-64 bg-black border-r border-gray-800 flex flex-col h-screen text-gray-300">
@@ -87,7 +90,10 @@ export default function LeftSidebar({
           <span className="text-sm text-gray-400">Account</span>
         </div>
 
-        <button className="text-gray-500 hover:text-red-400">
+        <button
+          onClick={logout}
+          className="text-gray-500 hover:text-red-400"
+        >
           <LogOut className="w-4 h-4" />
         </button>
       </div>
