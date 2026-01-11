@@ -3,13 +3,18 @@
 import MessageBubble from "./MessageBubble";
 import ChatInput from "./ChatInput";
 import { useMessages } from "../hooks/useMessages";
-import { sendToChatbot } from "../services/chatbot";
-import { uploadFile } from "../services/storage";
+import { sendToChatbot, uploadDocument } from "../services/chatbot";
 import { useAuth } from "../contexts/AuthContext";
 import { MessageSquarePlus } from "lucide-react";
 
-export default function ChatWindow({ chatId, onStartNewChat,onUpdateChat }: any) {
-  const { messages, addMessage ,updateMessage} = useMessages(chatId);
+export default function ChatWindow({ 
+  chatId, 
+  onStartNewChat, 
+  onUpdateChat,
+  temperature,
+  webSearch 
+}: any) {
+  const { messages, addMessage, updateMessage } = useMessages(chatId);
   const { user } = useAuth();
 
   if (!chatId) {
@@ -51,33 +56,97 @@ export default function ChatWindow({ chatId, onStartNewChat,onUpdateChat }: any)
     );
   }
 
-
   const handleSend = async (text: string, file?: File | null) => {
     if (!text.trim() && !file) return;
 
-    let fileUrl: string | null = null;
-
+    // If there's a file, handle document upload first
     if (file && user) {
-      const path = `chat-uploads/${user.uid}/${chatId}/${Date.now()}-${file.name}`;
-      fileUrl = await uploadFile(path, file);
+      try {
+        // Add user message showing file upload
+        const userMessage = text.trim() 
+          ? `${text}\n\n📎 ${file.name}`
+          : `📎 ${file.name}`;
+        
+        await addMessage({ 
+          role: "user", 
+          content: userMessage
+        });
+
+        // Update chat title if first message
+        if (messages.length === 0) {
+          const title = text.trim() || file.name;
+          await onUpdateChat(chatId, {
+            title: title.split(/\s+/).slice(0, 6).join(" "),
+            updatedAt: new Date(),
+          });
+        }
+
+        // Show uploading status
+        const uploadingMessage = {
+          role: "assistant",
+          content: `_Uploading and indexing ${file.name}..._`,
+          isThinking: true,
+        };
+        const uploadingRef = await addMessage(uploadingMessage);
+
+        // Upload to RAG system
+        const uploadResponse = await uploadDocument(file, user.uid);
+
+        // Update with success message
+        if (uploadingRef) {
+          await updateMessage(uploadingRef.id, {
+            content: `✓ **Document uploaded successfully!**\n\nFilename: ${uploadResponse.filename}\nSize: ${(uploadResponse.file_size / 1024).toFixed(2)} KB\nIndexed at: ${new Date(uploadResponse.timestamp).toLocaleString()}\n\n_Now querying the document..._`,
+            isThinking: true,
+          });
+        }
+
+        // Now query the uploaded document
+        const questionText = text.trim() || "What is this document about? Please summarize its main content.";
+        
+        const response = await sendToChatbot(
+          questionText, 
+          chatId,
+          null,
+          temperature,
+          webSearch
+        );
+
+        // Update with actual response
+        if (uploadingRef) {
+          await updateMessage(uploadingRef.id, {
+            content: response.answer,
+            isThinking: false,
+          });
+        }
+
+      } catch (error: any) {
+        console.error("Upload/Query error:", error);
+        
+        await addMessage({
+          role: "assistant",
+          content: `❌ **Error**: ${error.message}\n\nPlease try again or check if the file format is supported.`,
+          isThinking: false,
+        });
+      }
+      return;
     }
 
+    // Text-only message (no file)
+    await addMessage({ 
+      role: "user", 
+      content: text
+    });
 
-    await addMessage({ role: "user", content: text ,fileUrl});
-
+    // Update chat title if first message
     if (messages.length === 0) {
-      const title = text
-        .trim()
-        .split(/\s+/)
-        .slice(0, 6)
-        .join(" ");
-
+      const title = text.trim().split(/\s+/).slice(0, 6).join(" ");
       await onUpdateChat(chatId, {
         title,
         updatedAt: new Date(),
       });
     }
 
+    // Show thinking message
     const thinkingMessage = {
       role: "assistant",
       content: "_Thinking…_",
@@ -85,13 +154,30 @@ export default function ChatWindow({ chatId, onStartNewChat,onUpdateChat }: any)
     };
     const thinkingRef = await addMessage(thinkingMessage);
 
-    if (thinkingRef) {
-      const response = await sendToChatbot(text, chatId, fileUrl);
+    try {
+      const response = await sendToChatbot(
+        text, 
+        chatId,
+        null,
+        temperature,
+        webSearch
+      );
 
-      await updateMessage(thinkingRef.id, {
-        content: response.answer,
-        isThinking: false,
-      });
+      if (thinkingRef) {
+        await updateMessage(thinkingRef.id, {
+          content: response.answer,
+          isThinking: false,
+        });
+      }
+    } catch (error: any) {
+      console.error("Chatbot error:", error);
+      
+      if (thinkingRef) {
+        await updateMessage(thinkingRef.id, {
+          content: `❌ **Error**: ${error.message}\n\nPlease try again.`,
+          isThinking: false,
+        });
+      }
     }
   };
 
