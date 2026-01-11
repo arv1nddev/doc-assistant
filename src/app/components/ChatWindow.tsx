@@ -65,7 +65,7 @@ export default function ChatWindow({ chatId, onStartNewChat,onUpdateChat }: any)
     }
 
 
-    await addMessage({ role: "user", content: text });
+    await addMessage({ role: "user", content: text ,fileUrl});
 
     if (messages.length === 0) {
       const title = text
@@ -80,9 +80,9 @@ export default function ChatWindow({ chatId, onStartNewChat,onUpdateChat }: any)
       });
     }
 
-    const response = await sendToChatbot(text);
+    const response = await sendToChatbot(text,chatId,fileUrl);
 
-    await addMessage({ role: "assistant", content: response.content });
+    await addMessage({ role: "assistant", content: response.answer });
   };
 
   return (
