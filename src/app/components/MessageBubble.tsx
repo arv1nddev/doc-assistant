@@ -7,6 +7,7 @@ import "highlight.js/styles/github-dark.css";
 
 export default function MessageBubble({ message }: any) {
   const isUser = message.role === "user";
+  const isThinking = message.isThinking;
 
   return (
     <div className={`my-3 flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -50,6 +51,7 @@ export default function MessageBubble({ message }: any) {
         >
           {message.content}
         </ReactMarkdown>
+
 
         {/* Optional file attachment */}
         {message.fileUrl && (

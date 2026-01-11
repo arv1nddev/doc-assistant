@@ -9,7 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { MessageSquarePlus } from "lucide-react";
 
 export default function ChatWindow({ chatId, onStartNewChat,onUpdateChat }: any) {
-  const { messages, addMessage } = useMessages(chatId);
+  const { messages, addMessage ,updateMessage} = useMessages(chatId);
   const { user } = useAuth();
 
   if (!chatId) {
@@ -80,9 +80,21 @@ export default function ChatWindow({ chatId, onStartNewChat,onUpdateChat }: any)
       });
     }
 
-    const response = await sendToChatbot(text,chatId,fileUrl);
+    const thinkingMessage = {
+      role: "assistant",
+      content: "_Thinking…_",
+      isThinking: true,
+    };
+    const thinkingRef = await addMessage(thinkingMessage);
 
-    await addMessage({ role: "assistant", content: response.answer });
+    if (thinkingRef) {
+      const response = await sendToChatbot(text, chatId, fileUrl);
+
+      await updateMessage(thinkingRef.id, {
+        content: response.answer,
+        isThinking: false,
+      });
+    }
   };
 
   return (
