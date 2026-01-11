@@ -53,7 +53,6 @@ export default function MessageBubble({ message }: any) {
         </ReactMarkdown>
 
 
-        {/* Optional file attachment */}
         {message.fileUrl && (
           <div className="mt-2 text-xs">
             📎{" "}

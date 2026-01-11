@@ -19,7 +19,6 @@ export function useMessages(chatId?: string | null) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 🔒 IMPORTANT: reset when no chat
     if (!chatId) {
       setMessages([]);
       setLoading(false);

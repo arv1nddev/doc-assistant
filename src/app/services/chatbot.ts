@@ -21,5 +21,5 @@ export async function sendToChatbot(
     throw new Error("Chatbot API failed");
   }
 
-  return res.json(); // { answer: string }
+  return res.json();
 }
