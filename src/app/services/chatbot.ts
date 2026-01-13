@@ -14,23 +14,40 @@ export async function sendToChatbot(
     enable_search: enableSearch ?? false,
   };
 
-  const res = await fetch(`${BASE_URL}/query`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(requestBody),
-  });
+  try {
+    const res = await fetch(`${BASE_URL}/query`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || "Chatbot API failed");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      
+      if (errorData.detail && typeof errorData.detail === 'string') {
+        if (errorData.detail.includes('tool_use_failed') || errorData.detail.includes('Tool choice is none')) {
+          throw new Error(
+            'Web search configuration error. The backend needs to properly configure tool usage. ' +
+            'Try disabling web search in the sidebar or contact the administrator.'
+          );
+        }
+        throw new Error(errorData.detail);
+      }
+      
+      throw new Error(`API Error (${res.status}): ${res.statusText}`);
+    }
+
+    return res.json();
+  } catch (error: any) {
+    if (error.message.includes('fetch')) {
+      throw new Error('Cannot connect to the chatbot API. Please check if the backend is running.');
+    }
+    throw error;
   }
-
-  return res.json();
 }
 
-// Upload documents to the RAG system for indexing
 export async function uploadDocument(file: File, userId: string) {
   const formData = new FormData();
   formData.append("file", file);
@@ -47,4 +64,22 @@ export async function uploadDocument(file: File, userId: string) {
   }
 
   return res.json();
+}
+
+export async function deleteConversation(conversationId: string) {
+  try {
+    const res = await fetch(`${BASE_URL}/conversations/${conversationId}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.detail || "Failed to delete conversation from backend");
+    }
+
+    return res.json();
+  } catch (error: any) {
+    console.error("Error deleting conversation from backend:", error);
+    return { success: false, error: error.message };
+  }
 }

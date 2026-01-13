@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { Paperclip, Mic, ArrowUp, X } from "lucide-react";
 
 const SUGGESTIONS = [
-  "Explain quantum computing",
+  "Summarize this research paper",
   "Write a poem about rain",
-  "Debug my React hook",
+  "What are highlights of this document",
   "Plan a trip to Tokyo",
 ];
 

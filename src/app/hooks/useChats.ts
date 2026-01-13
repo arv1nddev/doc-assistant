@@ -11,10 +11,11 @@ import {
   deleteDoc,
   updateDoc,
   doc,
+  getDocs,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "../services/firebase";
-
+import { deleteConversation as deleteConversationFromBackend } from "../services/chatbot";
 
 export function useChats(userId?: string) {
   const [chats, setChats] = useState<any[]>([]);
@@ -49,7 +50,26 @@ export function useChats(userId?: string) {
     });
 
   const deleteChat = async (chatId: string) => {
-    await deleteDoc(doc(db, "chats", chatId));
+    try {
+      // await deleteConversationFromBackend(chatId);
+
+      const messagesQuery = query(
+        collection(db, "messages"),
+        where("chatId", "==", chatId)
+      );
+      const messagesSnapshot = await getDocs(messagesQuery);
+      const deletePromises = messagesSnapshot.docs.map((doc) =>
+        deleteDoc(doc.ref)
+      );
+      await Promise.all(deletePromises);
+
+      await deleteDoc(doc(db, "chats", chatId));
+
+      console.log(`✅ Chat ${chatId} deleted successfully`);
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      throw error;
+    }
   };
 
   const togglePin = async (chatId: string, pinned: boolean) => {
@@ -58,5 +78,5 @@ export function useChats(userId?: string) {
     });
   };
 
-  return { chats, loading: false,createChat, updateChat,deleteChat,togglePin };
+  return { chats, loading: false, createChat, updateChat, deleteChat, togglePin };
 }

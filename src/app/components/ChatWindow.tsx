@@ -81,7 +81,6 @@ export default function ChatWindow({
           });
         }
 
-        // Show uploading status
         const uploadingMessage = {
           role: "assistant",
           content: `_Uploading and indexing ${file.name}..._`,
@@ -89,10 +88,8 @@ export default function ChatWindow({
         };
         const uploadingRef = await addMessage(uploadingMessage);
 
-        // Upload to RAG system
         const uploadResponse = await uploadDocument(file, user.uid);
 
-        // Update with success message
         if (uploadingRef) {
           await updateMessage(uploadingRef.id, {
             content: `✓ **Document uploaded successfully!**\n\nFilename: ${uploadResponse.filename}\nSize: ${(uploadResponse.file_size / 1024).toFixed(2)} KB\nIndexed at: ${new Date(uploadResponse.timestamp).toLocaleString()}\n\n_Now querying the document..._`,
@@ -100,7 +97,6 @@ export default function ChatWindow({
           });
         }
 
-        // Now query the uploaded document
         const questionText = text.trim() || "What is this document about? Please summarize its main content.";
         
         const response = await sendToChatbot(
@@ -111,7 +107,6 @@ export default function ChatWindow({
           webSearch
         );
 
-        // Update with actual response
         if (uploadingRef) {
           await updateMessage(uploadingRef.id, {
             content: response.answer,
@@ -124,20 +119,18 @@ export default function ChatWindow({
         
         await addMessage({
           role: "assistant",
-          content: `❌ **Error**: ${error.message}\n\nPlease try again or check if the file format is supported.`,
+          content: `**Error**: ${error.message}\n\nPlease try again or check if the file format is supported.`,
           isThinking: false,
         });
       }
       return;
     }
 
-    // Text-only message (no file)
     await addMessage({ 
       role: "user", 
       content: text
     });
 
-    // Update chat title if first message
     if (messages.length === 0) {
       const title = text.trim().split(/\s+/).slice(0, 6).join(" ");
       await onUpdateChat(chatId, {
@@ -146,7 +139,6 @@ export default function ChatWindow({
       });
     }
 
-    // Show thinking message
     const thinkingMessage = {
       role: "assistant",
       content: "_Thinking…_",
@@ -174,7 +166,7 @@ export default function ChatWindow({
       
       if (thinkingRef) {
         await updateMessage(thinkingRef.id, {
-          content: `❌ **Error**: ${error.message}\n\nPlease try again.`,
+          content: ` **Error**: ${error.message}\n\nPlease try again.`,
           isThinking: false,
         });
       }
